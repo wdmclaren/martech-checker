@@ -17,7 +17,7 @@ function isAllowedOrigin(origin) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  return origin && allowed.includes(origin);
+  return allowed.includes(origin);
 }
 
 async function airtableList(tableName, filterByFormula) {
@@ -106,9 +106,16 @@ function evalConditions(node, input) {
 
 export async function OPTIONS(req) {
   const origin = req.headers.get("origin");
-  const allowOrigin = origin
-    ? (isAllowedOrigin(origin) ? origin : "")
-    : "*";
+  const host = req.headers.get("host");
+
+  const sameOrigin =
+    origin && host && origin === `https://${host}`;
+
+  const allowOrigin = sameOrigin
+    ? origin
+    : origin
+      ? (isAllowedOrigin(origin) ? origin : "")
+      : "*";
 
   return new Response(null, {
     status: 204,
@@ -119,23 +126,33 @@ export async function OPTIONS(req) {
 export async function POST(req) {
   try {
     const origin = req.headers.get("origin");
+const host = req.headers.get("host");
 
-    // Allow same-origin/local browser requests where Origin may be missing
-    const allowOrigin = origin
-      ? (isAllowedOrigin(origin) ? origin : "")
-      : "*";
+const sameOrigin =
+  origin && host && origin === `https://${host}`;
 
-    if (origin && !allowOrigin) {
-      return new Response(
-        JSON.stringify({ error: "Forbidden origin" }),
-        {
-          status: 403,
-          headers: {
-            "Content-Type": "application/json"
-          }
-        }
-      );
+const allowOrigin = sameOrigin
+  ? origin
+  : origin
+    ? (isAllowedOrigin(origin) ? origin : "")
+    : "*";
+
+if (origin && !allowOrigin) {
+  return new Response(
+    JSON.stringify({
+      error: "Forbidden origin",
+      requestOrigin: origin,
+      host,
+      allowedOrigins: process.env.ALLOWED_ORIGINS
+    }),
+    {
+      status: 403,
+      headers: {
+        "Content-Type": "application/json"
+      }
     }
+  );
+}
 
     const body = await req.json();
     const input = normalizeInput(body);

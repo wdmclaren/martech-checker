@@ -18,7 +18,7 @@ function isAllowedOrigin(origin) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  return origin && allowed.includes(origin);
+  return allowed.includes(origin);
 }
 
 async function airtableList(tableName, filterByFormula) {
@@ -58,9 +58,16 @@ function safeJsonParse(value) {
 
 export async function OPTIONS(req) {
   const origin = req.headers.get("origin");
-  const allowOrigin = origin
-    ? (isAllowedOrigin(origin) ? origin : "")
-    : "*";
+  const host = req.headers.get("host");
+
+  const sameOrigin =
+    origin && host && origin === `https://${host}`;
+
+  const allowOrigin = sameOrigin
+    ? origin
+    : origin
+      ? (isAllowedOrigin(origin) ? origin : "")
+      : "*";
 
   return new Response(null, {
     status: 204,
@@ -70,13 +77,25 @@ export async function OPTIONS(req) {
 
 export async function GET(req) {
   const origin = req.headers.get("origin");
-const allowOrigin = origin
-  ? (isAllowedOrigin(origin) ? origin : "")
-  : "*";
+const host = req.headers.get("host");
+
+const sameOrigin =
+  origin && host && origin === `https://${host}`;
+
+const allowOrigin = sameOrigin
+  ? origin
+  : origin
+    ? (isAllowedOrigin(origin) ? origin : "")
+    : "*";
 
 if (origin && !allowOrigin) {
   return new Response(
-    JSON.stringify({ error: "Forbidden origin" }),
+    JSON.stringify({
+      error: "Forbidden origin",
+      requestOrigin: origin,
+      host,
+      allowedOrigins: process.env.ALLOWED_ORIGINS
+    }),
     {
       status: 403,
       headers: {
@@ -85,7 +104,6 @@ if (origin && !allowOrigin) {
     }
   );
 }
-
   const vendorsTable = process.env.AIRTABLE_TABLE_VENDORS || "Vendors";
   const rulesTable = process.env.AIRTABLE_TABLE_RULES || "Rules";
 
