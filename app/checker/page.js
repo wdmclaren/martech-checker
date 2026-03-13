@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const CATEGORY_ORDER = ["Ordering", "POS", "Loyalty", "SMS", "CRM", "CDP"];
 
@@ -19,15 +19,6 @@ const SCENARIO_OPTIONS = [
   { value: "evaluate-stack", label: "Evaluate my current stack" },
   { value: "use-case-support", label: "Check if my stack supports a use case" }
 ];
-
-const CATEGORY_FIELD_MAP = {
-  Ordering: "ordering",
-  POS: "pos",
-  Loyalty: "loyalty",
-  SMS: "sms",
-  CRM: "crm",
-  CDP: "cdp"
-};
 
 const EMPTY_FORM = {
   goals: [],
@@ -77,44 +68,6 @@ export default function CheckerPage() {
     loadConfig();
   }, []);
 
-  const contextCategories = useMemo(() => {
-    if (scenario === "evaluate-stack") {
-      return form.evaluateCategories;
-    }
-
-    if (scenario === "add-vendor") {
-      const categories = [];
-      if (form.addCategory && !categories.includes(form.addCategory)) {
-        categories.push(form.addCategory);
-      }
-      return categories;
-    }
-
-    if (scenario === "compare-vendors") {
-      const categories = [];
-      if (form.compareCategory && !categories.includes(form.compareCategory)) {
-        categories.push(form.compareCategory);
-      }
-      return categories;
-    }
-
-    if (scenario === "use-case-support") {
-      const categories = [];
-      if (form.useCaseCategory && !categories.includes(form.useCaseCategory)) {
-        categories.push(form.useCaseCategory);
-      }
-      return categories;
-    }
-
-    return [];
-  }, [
-    scenario,
-    form.addCategory,
-    form.compareCategory,
-    form.evaluateCategories,
-    form.useCaseCategory
-  ]);
-
   function updateField(field, value) {
     setForm((prev) => ({
       ...prev,
@@ -142,30 +95,6 @@ export default function CheckerPage() {
     });
   }
 
-  function toggleCategorySelection(field, category) {
-    setForm((prev) => {
-      const current = prev[field];
-      const exists = current.includes(category);
-      const next = exists
-        ? current.filter((c) => c !== category)
-        : [...current, category];
-
-      const updated = {
-        ...prev,
-        [field]: next
-      };
-
-      if (field === "evaluateCategories" && exists) {
-        const stateField = CATEGORY_FIELD_MAP[category];
-        if (stateField) {
-          updated[stateField] = stateField === "sms" ? [] : "";
-        }
-      }
-
-      return updated;
-    });
-  }
-
   function toggleMultiVendor(field, vendorName) {
     setForm((prev) => {
       const exists = prev[field].includes(vendorName);
@@ -190,6 +119,31 @@ export default function CheckerPage() {
     });
   }
 
+  function toggleEvaluateCategory(category) {
+    setForm((prev) => {
+      const exists = prev.evaluateCategories.includes(category);
+      const next = exists
+        ? prev.evaluateCategories.filter((c) => c !== category)
+        : [...prev.evaluateCategories, category];
+
+      const updated = {
+        ...prev,
+        evaluateCategories: next
+      };
+
+      if (exists) {
+        if (category === "Ordering") updated.ordering = "";
+        if (category === "POS") updated.pos = "";
+        if (category === "Loyalty") updated.loyalty = "";
+        if (category === "CRM") updated.crm = "";
+        if (category === "CDP") updated.cdp = "";
+        if (category === "SMS") updated.sms = [];
+      }
+
+      return updated;
+    });
+  }
+
   async function runCheck() {
     try {
       setLoading(true);
@@ -209,17 +163,17 @@ export default function CheckerPage() {
         candidateVendor:
           scenario === "add-vendor"
             ? form.addVendor
-            : scenario === "use-case-support"
-              ? form.useCaseVendor
-              : scenario === "compare-vendors"
-                ? form.compareVendors.join(", ")
+            : scenario === "compare-vendors"
+              ? form.compareVendors.join(", ")
+              : scenario === "use-case-support"
+                ? form.useCaseVendor
                 : "",
-        ordering: contextCategories.includes("Ordering") ? form.ordering : "",
-        pos: contextCategories.includes("POS") ? form.pos : "",
-        loyalty: contextCategories.includes("Loyalty") ? form.loyalty : "",
-        crm: contextCategories.includes("CRM") ? form.crm : "",
-        cdp: contextCategories.includes("CDP") ? form.cdp : "",
-        sms: contextCategories.includes("SMS") ? form.sms : [],
+        ordering: form.ordering,
+        pos: form.pos,
+        loyalty: form.loyalty,
+        crm: form.crm,
+        cdp: form.cdp,
+        sms: form.sms,
         goals: form.goals
       };
 
@@ -325,12 +279,12 @@ export default function CheckerPage() {
     );
   }
 
-  function renderCheckboxGroup(options, values, onToggle) {
-    return (
+  function renderGoalsSection(stepNumber) {
+    return sectionCard(`${stepNumber}. What goals or use cases are you trying to solve for?`, (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-        {options.map((option) => (
+        {GOAL_OPTIONS.map((goal) => (
           <label
-            key={option}
+            key={goal}
             style={{
               border: "1px solid #ccc",
               borderRadius: 8,
@@ -343,53 +297,14 @@ export default function CheckerPage() {
           >
             <input
               type="checkbox"
-              checked={values.includes(option)}
-              onChange={() => onToggle(option)}
+              checked={form.goals.includes(goal)}
+              onChange={() => toggleGoal(goal)}
             />
-            {option}
+            {goal}
           </label>
         ))}
       </div>
-    );
-  }
-
-  function renderVendorCompareOptions() {
-    const vendorOptions = vendors[form.compareCategory] || [];
-
-    if (!form.compareCategory) return null;
-
-    return (
-      <div style={{ marginTop: 8 }}>
-        <div style={{ marginBottom: 8, fontWeight: 600 }}>Vendors</div>
-        {vendorOptions.length === 0 ? (
-          <div>No vendors available for this category.</div>
-        ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {vendorOptions.map((v) => (
-              <label
-                key={v.name}
-                style={{
-                  border: "1px solid #ccc",
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: "pointer"
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={form.compareVendors.includes(v.name)}
-                  onChange={() => toggleMultiVendor("compareVendors", v.name)}
-                />
-                {v.name}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+    ));
   }
 
   function renderSmsContext() {
@@ -397,7 +312,7 @@ export default function CheckerPage() {
 
     return (
       <div style={{ marginBottom: 18 }}>
-        <div style={{ marginBottom: 6, fontWeight: 600 }}>SMS</div>
+        <div style={{ marginBottom: 6, fontWeight: 600 }}>Current SMS Vendor(s)</div>
         {options.length === 0 ? (
           <div>No SMS vendors available.</div>
         ) : (
@@ -438,80 +353,29 @@ export default function CheckerPage() {
         </div>
 
         {categories.includes("Ordering") &&
-          renderSingleSelect(
-            "Current Ordering Vendor",
-            "ordering",
-            vendors.Ordering,
-            "Select ordering vendor"
-          )}
+          renderSingleSelect("Current Ordering Vendor", "ordering", vendors.Ordering, "Select ordering vendor")}
 
         {categories.includes("POS") &&
-          renderSingleSelect(
-            "Current POS Vendor",
-            "pos",
-            vendors.POS,
-            "Select POS vendor"
-          )}
+          renderSingleSelect("Current POS Vendor", "pos", vendors.POS, "Select POS vendor")}
 
         {categories.includes("Loyalty") &&
-          renderSingleSelect(
-            "Current Loyalty Vendor",
-            "loyalty",
-            vendors.Loyalty,
-            "Select loyalty vendor"
-          )}
+          renderSingleSelect("Current Loyalty Vendor", "loyalty", vendors.Loyalty, "Select loyalty vendor")}
 
         {categories.includes("CRM") &&
-          renderSingleSelect(
-            "Current CRM Vendor",
-            "crm",
-            vendors.CRM,
-            "Select CRM vendor"
-          )}
+          renderSingleSelect("Current CRM Vendor", "crm", vendors.CRM, "Select CRM vendor")}
 
         {categories.includes("CDP") &&
-          renderSingleSelect(
-            "Current CDP Vendor",
-            "cdp",
-            vendors.CDP,
-            "Select CDP vendor"
-          )}
+          renderSingleSelect("Current CDP Vendor", "cdp", vendors.CDP, "Select CDP vendor")}
 
         {categories.includes("SMS") && renderSmsContext()}
       </>
     ));
   }
 
-  function renderGoalsSection(stepNumber) {
-    return sectionCard(`${stepNumber}. What goals or use cases are you trying to solve for?`, (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-        {GOAL_OPTIONS.map((goal) => (
-          <label
-            key={goal}
-            style={{
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              padding: "10px 14px",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer"
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={form.goals.includes(goal)}
-              onChange={() => toggleGoal(goal)}
-            />
-            {goal}
-          </label>
-        ))}
-      </div>
-    ));
-  }
-
   function renderAddVendorFlow() {
-    const addVendorOptions = vendors[form.addCategory] || [];
+    const step2Complete = !!form.addCategory;
+    const step3Complete = !!form.addVendor;
+    const step4Categories = form.addCategory ? [form.addCategory] : [];
 
     return (
       <>
@@ -519,7 +383,7 @@ export default function CheckerPage() {
           renderCategorySelect("Category", "addCategory")
         ))}
 
-        {form.addCategory &&
+        {step2Complete &&
           sectionCard("3. Which vendor are you considering?", (
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
@@ -537,7 +401,7 @@ export default function CheckerPage() {
                 }}
               >
                 <option value="">Select vendor</option>
-                {addVendorOptions.map((v) => (
+                {(vendors[form.addCategory] || []).map((v) => (
                   <option key={v.name} value={v.name}>
                     {v.name}
                   </option>
@@ -546,58 +410,118 @@ export default function CheckerPage() {
             </div>
           ))}
 
-        {renderCurrentStackContext(
-          "4. What current stack context matters for this decision?",
-          CATEGORY_ORDER
-        )}
+        {step3Complete &&
+          renderCurrentStackContext(
+            "4. What current stack context matters for this decision?",
+            step4Categories
+          )}
 
-        {renderGoalsSection(5)}
+        {step3Complete && renderGoalsSection(5)}
       </>
     );
   }
 
   function renderCompareVendorsFlow() {
+    const step2Complete = !!form.compareCategory;
+    const step3Complete = form.compareVendors.length > 0;
+    const contextCategories = form.compareCategory ? [form.compareCategory] : [];
+
     return (
       <>
         {sectionCard("2. What category are you looking to compare vendors in?", (
           <>
             {renderCategorySelect("Category", "compareCategory")}
-            {renderVendorCompareOptions()}
+
+            {step2Complete && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ marginBottom: 8, fontWeight: 600 }}>Vendors</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  {(vendors[form.compareCategory] || []).map((v) => (
+                    <label
+                      key={v.name}
+                      style={{
+                        border: "1px solid #ccc",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer"
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.compareVendors.includes(v.name)}
+                        onChange={() => toggleMultiVendor("compareVendors", v.name)}
+                      />
+                      {v.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         ))}
 
-        {renderCurrentStackContext(
-          "3. What current stack context matters for this comparison?",
-          CATEGORY_ORDER
-        )}
+        {step3Complete &&
+          renderCurrentStackContext(
+            "4. What current stack context matters for this comparison?",
+            contextCategories
+          )}
 
-        {renderGoalsSection(4)}
+        {step3Complete && renderGoalsSection(5)}
       </>
     );
   }
 
   function renderEvaluateStackFlow() {
+    const step2Complete = form.evaluateCategories.length > 0;
+
     return (
       <>
         {sectionCard("2. What categories are you wanting to evaluate?", (
-          renderCheckboxGroup(
-            CATEGORY_ORDER,
-            form.evaluateCategories,
-            (category) => toggleCategorySelection("evaluateCategories", category)
-          )
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {CATEGORY_ORDER.map((category) => (
+              <label
+                key={category}
+                style={{
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer"
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form.evaluateCategories.includes(category)}
+                  onChange={() => toggleEvaluateCategory(category)}
+                />
+                {category}
+              </label>
+            ))}
+          </div>
         ))}
 
-        {renderCurrentStackContext(
-          "3. Tell us your current vendors in these categories",
-          form.evaluateCategories
-        )}
+        {step2Complete &&
+          renderCurrentStackContext(
+            "3. Tell us your current vendors in these categories",
+            form.evaluateCategories
+          )}
 
-        {renderGoalsSection(4)}
+        {step2Complete && renderGoalsSection(4)}
       </>
     );
   }
 
   function renderUseCaseSupportFlow() {
+    const step2Complete = form.goals.length > 0;
+    const step3Complete = !!form.useCaseCategory;
+    const step4Complete = !!form.useCaseVendor;
+    const contextCategories = form.useCaseCategory ? [form.useCaseCategory] : [];
+
     return (
       <>
         {sectionCard("2. What use case are you looking to solve?", (
@@ -626,11 +550,12 @@ export default function CheckerPage() {
           </div>
         ))}
 
-        {sectionCard("3. Choose the category", (
-          renderCategorySelect("Category", "useCaseCategory")
-        ))}
+        {step2Complete &&
+          sectionCard("3. Choose the category", (
+            renderCategorySelect("Category", "useCaseCategory")
+          ))}
 
-        {form.useCaseCategory &&
+        {step3Complete &&
           sectionCard("4. Choose the vendor", (
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
@@ -657,10 +582,11 @@ export default function CheckerPage() {
             </div>
           ))}
 
-        {renderCurrentStackContext(
-          "5. What current stack context matters for this use case?",
-          CATEGORY_ORDER
-        )}
+        {step4Complete &&
+          renderCurrentStackContext(
+            "5. What current stack context matters for this use case?",
+            contextCategories
+          )}
       </>
     );
   }
@@ -710,9 +636,7 @@ export default function CheckerPage() {
       </p>
 
       <div style={{ marginBottom: 28, maxWidth: 750, color: "#444" }}>
-        This tool helps restaurant marketing and technology teams evaluate whether
-        their MarTech stack will support specific vendor decisions, integrations,
-        and marketing use cases before committing to implementation.
+        This tool helps restaurant marketing and technology teams evaluate whether their MarTech stack will support specific vendor decisions, integrations, and marketing use cases before committing to implementation.
       </div>
 
       {configError && (
