@@ -29,42 +29,31 @@ const CATEGORY_FIELD_MAP = {
   CDP: "cdp"
 };
 
+const EMPTY_FORM = {
+  goals: [],
+  addCategory: "",
+  addVendor: "",
+  compareCategory: "",
+  compareVendors: [],
+  evaluateCategories: [],
+  useCaseCategory: "",
+  useCaseVendor: "",
+  ordering: "",
+  pos: "",
+  loyalty: "",
+  crm: "",
+  cdp: "",
+  sms: []
+};
+
 export default function CheckerPage() {
   const [vendors, setVendors] = useState({});
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [configError, setConfigError] = useState("");
   const [submitError, setSubmitError] = useState("");
-
   const [scenario, setScenario] = useState("");
-
-  const [form, setForm] = useState({
-    // shared
-    goals: [],
-
-    // add vendor
-    addCategory: "",
-    addVendor: "",
-
-    // compare vendors
-    compareCategory: "",
-    compareVendors: [],
-
-    // evaluate stack
-    evaluateCategories: [],
-
-    // use case support
-    useCaseCategory: "",
-    useCaseVendor: "",
-
-    // current stack context
-    ordering: "",
-    pos: "",
-    loyalty: "",
-    crm: "",
-    cdp: "",
-    sms: []
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
     async function loadConfig() {
@@ -95,42 +84,50 @@ export default function CheckerPage() {
 
     if (scenario === "add-vendor") {
       const categories = [];
-
       if (form.addCategory && !categories.includes(form.addCategory)) {
         categories.push(form.addCategory);
       }
-
       return categories;
     }
 
     if (scenario === "compare-vendors") {
       const categories = [];
-
       if (form.compareCategory && !categories.includes(form.compareCategory)) {
         categories.push(form.compareCategory);
       }
-
       return categories;
     }
 
     if (scenario === "use-case-support") {
       const categories = [];
-
       if (form.useCaseCategory && !categories.includes(form.useCaseCategory)) {
         categories.push(form.useCaseCategory);
       }
-
       return categories;
     }
 
     return [];
-  }, [scenario, form.addCategory, form.compareCategory, form.evaluateCategories, form.useCaseCategory]);
+  }, [
+    scenario,
+    form.addCategory,
+    form.compareCategory,
+    form.evaluateCategories,
+    form.useCaseCategory
+  ]);
 
   function updateField(field, value) {
     setForm((prev) => ({
       ...prev,
       [field]: value
     }));
+  }
+
+  function resetFormForScenario(nextScenario) {
+    setScenario(nextScenario);
+    setResult(null);
+    setSubmitError("");
+    setForm(EMPTY_FORM);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function toggleGoal(goal) {
@@ -436,20 +433,49 @@ export default function CheckerPage() {
 
     return sectionCard(title, (
       <>
+        <div style={{ marginBottom: 18, color: "#555" }}>
+          Choose from your current vendor partners below.
+        </div>
+
         {categories.includes("Ordering") &&
-          renderSingleSelect("Current Ordering Vendor", "ordering", vendors.Ordering, "Select ordering vendor")}
+          renderSingleSelect(
+            "Current Ordering Vendor",
+            "ordering",
+            vendors.Ordering,
+            "Select ordering vendor"
+          )}
 
         {categories.includes("POS") &&
-          renderSingleSelect("Current POS Vendor", "pos", vendors.POS, "Select POS vendor")}
+          renderSingleSelect(
+            "Current POS Vendor",
+            "pos",
+            vendors.POS,
+            "Select POS vendor"
+          )}
 
         {categories.includes("Loyalty") &&
-          renderSingleSelect("Current Loyalty Vendor", "loyalty", vendors.Loyalty, "Select loyalty vendor")}
+          renderSingleSelect(
+            "Current Loyalty Vendor",
+            "loyalty",
+            vendors.Loyalty,
+            "Select loyalty vendor"
+          )}
 
         {categories.includes("CRM") &&
-          renderSingleSelect("Current CRM Vendor", "crm", vendors.CRM, "Select CRM vendor")}
+          renderSingleSelect(
+            "Current CRM Vendor",
+            "crm",
+            vendors.CRM,
+            "Select CRM vendor"
+          )}
 
         {categories.includes("CDP") &&
-          renderSingleSelect("Current CDP Vendor", "cdp", vendors.CDP, "Select CDP vendor")}
+          renderSingleSelect(
+            "Current CDP Vendor",
+            "cdp",
+            vendors.CDP,
+            "Select CDP vendor"
+          )}
 
         {categories.includes("SMS") && renderSmsContext()}
       </>
@@ -520,7 +546,10 @@ export default function CheckerPage() {
             </div>
           ))}
 
-        {renderCurrentStackContext("4. What current stack context matters for this decision?", CATEGORY_ORDER)}
+        {renderCurrentStackContext(
+          "4. What current stack context matters for this decision?",
+          CATEGORY_ORDER
+        )}
 
         {renderGoalsSection(5)}
       </>
@@ -537,7 +566,10 @@ export default function CheckerPage() {
           </>
         ))}
 
-        {renderCurrentStackContext("3. What current stack context matters for this comparison?", CATEGORY_ORDER)}
+        {renderCurrentStackContext(
+          "3. What current stack context matters for this comparison?",
+          CATEGORY_ORDER
+        )}
 
         {renderGoalsSection(4)}
       </>
@@ -555,7 +587,10 @@ export default function CheckerPage() {
           )
         ))}
 
-        {renderCurrentStackContext("3. Tell us your current vendors in these categories", form.evaluateCategories)}
+        {renderCurrentStackContext(
+          "3. Tell us your current vendors in these categories",
+          form.evaluateCategories
+        )}
 
         {renderGoalsSection(4)}
       </>
@@ -622,7 +657,10 @@ export default function CheckerPage() {
             </div>
           ))}
 
-        {renderCurrentStackContext("5. What current stack context matters for this use case?", CATEGORY_ORDER)}
+        {renderCurrentStackContext(
+          "5. What current stack context matters for this use case?",
+          CATEGORY_ORDER
+        )}
       </>
     );
   }
@@ -667,7 +705,11 @@ export default function CheckerPage() {
       <div style={{ fontSize: 14, color: "#777", marginBottom: 20 }}>
         Built by 3Owl to help restaurant teams evaluate MarTech architecture decisions.
       </div>
-      <div style={{ marginBottom: 28, maxWidth: 750 }}>
+      <p style={{ marginTop: 0, marginBottom: 28, color: "#555" }}>
+        Evaluate whether your restaurant technology stack will work together before committing to vendor decisions.
+      </p>
+
+      <div style={{ marginBottom: 28, maxWidth: 750, color: "#444" }}>
         This tool helps restaurant marketing and technology teams evaluate whether
         their MarTech stack will support specific vendor decisions, integrations,
         and marketing use cases before committing to implementation.
@@ -707,7 +749,7 @@ export default function CheckerPage() {
                 name="scenario"
                 value={option.value}
                 checked={scenario === option.value}
-                onChange={() => setScenario(option.value)}
+                onChange={() => resetFormForScenario(option.value)}
               />
               {option.label}
             </label>
@@ -720,19 +762,20 @@ export default function CheckerPage() {
       {scenario && (
         <button
           onClick={runCheck}
-        disabled={loading || !canRunCheck()}
-        style={{
-          padding: "12px 18px",
-          borderRadius: 10,
-          border: "none",
-          background: loading ? "#999" : "#111",
-          color: "#fff",
-          cursor: loading ? "not-allowed" : "pointer",
-          fontWeight: 600
-        }}
-      >
-        {loading ? "Running Check..." : "Evaluate Compatabilty"}
-      </button>)}
+          disabled={loading || !canRunCheck()}
+          style={{
+            padding: "12px 18px",
+            borderRadius: 10,
+            border: "none",
+            background: loading ? "#999" : "#111",
+            color: "#fff",
+            cursor: loading ? "not-allowed" : "pointer",
+            fontWeight: 600
+          }}
+        >
+          {loading ? "Running Check..." : "Evaluate Compatibility"}
+        </button>
+      )}
 
       {submitError && (
         <div
@@ -758,7 +801,7 @@ export default function CheckerPage() {
               marginBottom: 24
             }}
           >
-            <h2 style={{ marginTop: 0 }}>Compatability Outlook</h2>
+            <h2 style={{ marginTop: 0 }}>Compatibility Outlook</h2>
             <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
               {result.score}
             </div>
@@ -777,7 +820,7 @@ export default function CheckerPage() {
               padding: 24
             }}
           >
-            <h2 style={{ marginTop: 0 }}>Key Findings</h2>
+            <h2 style={{ marginTop: 0 }}>Findings</h2>
             {!result.topRisks || result.topRisks.length === 0 ? (
               <p style={{ color: "#666" }}>
                 No major findings were triggered for this scenario.
