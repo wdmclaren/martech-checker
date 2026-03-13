@@ -13,13 +13,21 @@ const GOAL_OPTIONS = [
   "loyalty growth"
 ];
 
-export default function TestPage() {
+const SCENARIO_OPTIONS = [
+  { value: "add-vendor", label: "Add a vendor to my stack" },
+  { value: "compare-vendors", label: "Compare vendors" },
+  { value: "evaluate-stack", label: "Evaluate my current stack" },
+  { value: "use-case-support", label: "Check if my stack supports a use case" }
+];
+
+export default function CheckerPage() {
   const [vendors, setVendors] = useState({});
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [configError, setConfigError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [scenario, setScenario] = useState("add-vendor");
 
   const [form, setForm] = useState({
     ordering: "",
@@ -67,7 +75,6 @@ export default function TestPage() {
         ? prev.filter((c) => c !== category)
         : [...prev, category];
 
-      // Clear values when category is removed
       if (exists) {
         const fieldMap = {
           Ordering: "ordering",
@@ -122,6 +129,7 @@ export default function TestPage() {
       setResult(null);
 
       const payload = {
+        scenario,
         ordering: selectedCategories.includes("Ordering") ? form.ordering : "",
         pos: selectedCategories.includes("POS") ? form.pos : "",
         loyalty: selectedCategories.includes("Loyalty") ? form.loyalty : "",
@@ -261,7 +269,43 @@ export default function TestPage() {
           marginBottom: 24
         }}
       >
-        <h2 style={{ marginTop: 0 }}>1. Choose relevant categories</h2>
+        <h2 style={{ marginTop: 0 }}>1. What are you trying to do?</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {SCENARIO_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: 8,
+                padding: "10px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "pointer"
+              }}
+            >
+              <input
+                type="radio"
+                name="scenario"
+                value={option.value}
+                checked={scenario === option.value}
+                onChange={() => setScenario(option.value)}
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #ddd",
+          borderRadius: 12,
+          padding: 24,
+          marginBottom: 24
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>2. Choose relevant categories</h2>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {CATEGORY_ORDER.map((category) => (
             <label
@@ -295,7 +339,7 @@ export default function TestPage() {
           marginBottom: 24
         }}
       >
-        <h2 style={{ marginTop: 0 }}>2. Select vendors</h2>
+        <h2 style={{ marginTop: 0 }}>3. Select vendors</h2>
         {selectedCategories.length === 0 ? (
           <p style={{ color: "#666" }}>
             Choose one or more categories above to start.
@@ -330,7 +374,7 @@ export default function TestPage() {
           marginBottom: 24
         }}
       >
-        <h2 style={{ marginTop: 0 }}>3. Goals and use cases</h2>
+        <h2 style={{ marginTop: 0 }}>4. Goals and use cases</h2>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {GOAL_OPTIONS.map((goal) => (
             <label
