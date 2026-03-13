@@ -28,6 +28,8 @@ export default function CheckerPage() {
   const [configError, setConfigError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [scenario, setScenario] = useState("add-vendor");
+  const [candidateCategory, setCandidateCategory] = useState("");
+  const [candidateVendor, setCandidateVendor] = useState("");
 
   const [form, setForm] = useState({
     ordering: "",
@@ -130,6 +132,8 @@ export default function CheckerPage() {
 
       const payload = {
         scenario,
+        candidateCategory,
+        candidateVendor,
         ordering: selectedCategories.includes("Ordering") ? form.ordering : "",
         pos: selectedCategories.includes("POS") ? form.pos : "",
         loyalty: selectedCategories.includes("Loyalty") ? form.loyalty : "",
@@ -378,7 +382,74 @@ export default function CheckerPage() {
           marginBottom: 24
         }}
       >
-        <h2 style={{ marginTop: 0 }}>4. Goals and use cases</h2>
+
+        {scenario === "add-vendor" && (
+  <div
+    style={{
+      border: "1px solid #ddd",
+      borderRadius: 12,
+      padding: 24,
+      marginBottom: 24
+    }}
+  >
+    <h2 style={{ marginTop: 0 }}>4. Vendor you are considering</h2>
+
+    <div style={{ marginBottom: 18 }}>
+      <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+        Category
+      </label>
+      <select
+        value={candidateCategory}
+        onChange={(e) => {
+          setCandidateCategory(e.target.value);
+          setCandidateVendor("");
+        }}
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          padding: "10px",
+          borderRadius: 8,
+          border: "1px solid #ccc"
+        }}
+      >
+        <option value="">Select category</option>
+        {CATEGORY_ORDER.map((cat) => (
+          <option key={cat} value={cat}>
+            {cat}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {candidateCategory && (
+      <div>
+        <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+          Vendor
+        </label>
+        <select
+          value={candidateVendor}
+          onChange={(e) => setCandidateVendor(e.target.value)}
+          style={{
+            width: "100%",
+            maxWidth: 420,
+            padding: "10px",
+            borderRadius: 8,
+            border: "1px solid #ccc"
+          }}
+        >
+          <option value="">Select vendor</option>
+          {(vendors[candidateCategory] || []).map((v) => (
+            <option key={v.name} value={v.name}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    )}
+  </div>
+)}
+
+        <h2 style={{ marginTop: 0 }}>5. Goals and use cases</h2>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {GOAL_OPTIONS.map((goal) => (
             <label
