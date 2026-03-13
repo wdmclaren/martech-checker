@@ -36,7 +36,7 @@ export default function CheckerPage() {
   const [configError, setConfigError] = useState("");
   const [submitError, setSubmitError] = useState("");
 
-  const [scenario, setScenario] = useState("add-vendor");
+  const [scenario, setScenario] = useState("");
 
   const [form, setForm] = useState({
     // shared
@@ -667,9 +667,11 @@ export default function CheckerPage() {
       <div style={{ fontSize: 14, color: "#777", marginBottom: 20 }}>
         Built by 3Owl to help restaurant teams evaluate MarTech architecture decisions.
       </div>
-      <p style={{ marginTop: 0, marginBottom: 28, color: "#555" }}>
-        Evaluate whether your restaurant technology stack will work together before committing to vendor decisions.
-      </p>
+      <div style={{ marginBottom: 28, maxWidth: 750 }}>
+        This tool helps restaurant marketing and technology teams evaluate whether
+        their MarTech stack will support specific vendor decisions, integrations,
+        and marketing use cases before committing to implementation.
+      </div>
 
       {configError && (
         <div
@@ -685,7 +687,7 @@ export default function CheckerPage() {
         </div>
       )}
 
-      {sectionCard("1. What are you trying to do?", (
+      {sectionCard("1. What would you like to evaluate?", (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {SCENARIO_OPTIONS.map((option) => (
             <label
@@ -713,10 +715,11 @@ export default function CheckerPage() {
         </div>
       ))}
 
-      {renderScenarioFlow()}
+      {scenario && renderScenarioFlow()}
 
-      <button
-        onClick={runCheck}
+      {scenario && (
+        <button
+          onClick={runCheck}
         disabled={loading || !canRunCheck()}
         style={{
           padding: "12px 18px",
@@ -728,8 +731,8 @@ export default function CheckerPage() {
           fontWeight: 600
         }}
       >
-        {loading ? "Running Check..." : "Run Check"}
-      </button>
+        {loading ? "Running Check..." : "Evaluate Compatabilty"}
+      </button>)}
 
       {submitError && (
         <div
@@ -755,7 +758,7 @@ export default function CheckerPage() {
               marginBottom: 24
             }}
           >
-            <h2 style={{ marginTop: 0 }}>Findings</h2>
+            <h2 style={{ marginTop: 0 }}>Compatability Outlook</h2>
             <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
               {result.score}
             </div>
