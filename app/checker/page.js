@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const CATEGORY_ORDER = ["Ordering", "POS", "Loyalty", "SMS", "CRM", "CDP"];
 
-const GOAL_OPTIONS = [
+const GENERAL_GOAL_OPTIONS = [
   "personalization",
   "attribution",
   "real-time loyalty",
@@ -13,22 +13,53 @@ const GOAL_OPTIONS = [
   "loyalty growth"
 ];
 
+const SINGLE_VENDOR_USE_CASE_OPTIONS = [
+  "personalization",
+  "attribution",
+  "offer targeting",
+  "real-time loyalty",
+  "segmentation",
+  "wallet support"
+];
+
+const MULTI_VENDOR_USE_CASE_OPTIONS = [
+  "loyalty redemption in online ordering",
+  "loyalty redemption at POS",
+  "coupon redemption across channels",
+  "real-time points balance at checkout",
+  "cross-channel offer suppression"
+];
+
 const SCENARIO_OPTIONS = [
   { value: "add-vendor", label: "Add a vendor to my stack" },
   { value: "compare-vendors", label: "Compare vendors" },
   { value: "evaluate-stack", label: "Evaluate my current stack" },
-  { value: "use-case-support", label: "Check if my stack supports a use case" }
+  { value: "use-case-support", label: "Check vendor or stack support for a use case" }
+];
+
+const USE_CASE_MODE_OPTIONS = [
+  { value: "single-vendor", label: "A feature in one vendor" },
+  { value: "multi-vendor", label: "A workflow across multiple vendors" }
 ];
 
 const EMPTY_FORM = {
   goals: [],
+
   addCategory: "",
   addVendor: "",
+
   compareCategory: "",
   compareVendors: [],
+
   evaluateCategories: [],
+
+  useCaseMode: "",
   useCaseCategory: "",
   useCaseVendor: "",
+  useCaseSingleGoal: "",
+  useCaseWorkflowGoal: "",
+  useCaseWorkflowCategories: [],
+
   ordering: "",
   pos: "",
   loyalty: "",
@@ -95,14 +126,14 @@ export default function CheckerPage() {
     });
   }
 
-  function toggleMultiVendor(field, vendorName) {
+  function toggleCompareVendor(vendorName) {
     setForm((prev) => {
-      const exists = prev[field].includes(vendorName);
+      const exists = prev.compareVendors.includes(vendorName);
       return {
         ...prev,
-        [field]: exists
-          ? prev[field].filter((v) => v !== vendorName)
-          : [...prev[field], vendorName]
+        compareVendors: exists
+          ? prev.compareVendors.filter((v) => v !== vendorName)
+          : [...prev.compareVendors, vendorName]
       };
     });
   }
@@ -144,6 +175,31 @@ export default function CheckerPage() {
     });
   }
 
+  function toggleWorkflowCategory(category) {
+    setForm((prev) => {
+      const exists = prev.useCaseWorkflowCategories.includes(category);
+      const next = exists
+        ? prev.useCaseWorkflowCategories.filter((c) => c !== category)
+        : [...prev.useCaseWorkflowCategories, category];
+
+      const updated = {
+        ...prev,
+        useCaseWorkflowCategories: next
+      };
+
+      if (exists) {
+        if (category === "Ordering") updated.ordering = "";
+        if (category === "POS") updated.pos = "";
+        if (category === "Loyalty") updated.loyalty = "";
+        if (category === "CRM") updated.crm = "";
+        if (category === "CDP") updated.cdp = "";
+        if (category === "SMS") updated.sms = [];
+      }
+
+      return updated;
+    });
+  }
+
   async function runCheck() {
     try {
       setLoading(true);
@@ -152,20 +208,23 @@ export default function CheckerPage() {
 
       const payload = {
         scenario,
+        useCaseMode: form.useCaseMode,
         candidateCategory:
           scenario === "add-vendor"
             ? form.addCategory
             : scenario === "compare-vendors"
               ? form.compareCategory
-              : scenario === "use-case-support"
+              : scenario === "use-case-support" && form.useCaseMode === "single-vendor"
                 ? form.useCaseCategory
-                : "",
+                : scenario === "use-case-support" && form.useCaseMode === "multi-vendor"
+                  ? form.useCaseWorkflowCategories.join(", ")
+                  : "",
         candidateVendor:
           scenario === "add-vendor"
             ? form.addVendor
             : scenario === "compare-vendors"
               ? form.compareVendors.join(", ")
-              : scenario === "use-case-support"
+              : scenario === "use-case-support" && form.useCaseMode === "single-vendor"
                 ? form.useCaseVendor
                 : "",
         ordering: form.ordering,
@@ -174,7 +233,12 @@ export default function CheckerPage() {
         crm: form.crm,
         cdp: form.cdp,
         sms: form.sms,
-        goals: form.goals
+        goals:
+          scenario === "use-case-support" && form.useCaseMode === "single-vendor"
+            ? form.useCaseSingleGoal ? [form.useCaseSingleGoal] : []
+            : scenario === "use-case-support" && form.useCaseMode === "multi-vendor"
+              ? form.useCaseWorkflowGoal ? [form.useCaseWorkflowGoal] : []
+              : form.goals
       };
 
       const res = await fetch("/api/evaluate", {
@@ -282,7 +346,7 @@ export default function CheckerPage() {
   function renderGoalsSection(stepNumber) {
     return sectionCard(`${stepNumber}. What goals or use cases are you trying to solve for?`, (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-        {GOAL_OPTIONS.map((goal) => (
+        {GENERAL_GOAL_OPTIONS.map((goal) => (
           <label
             key={goal}
             style={{
@@ -452,7 +516,7 @@ export default function CheckerPage() {
                       <input
                         type="checkbox"
                         checked={form.compareVendors.includes(v.name)}
-                        onChange={() => toggleMultiVendor("compareVendors", v.name)}
+                        onChange={() => toggleCompareVendor(v.name)}
                       />
                       {v.name}
                     </label>
@@ -517,18 +581,24 @@ export default function CheckerPage() {
   }
 
   function renderUseCaseSupportFlow() {
-    const step2Complete = form.goals.length > 0;
-    const step3Complete = !!form.useCaseCategory;
-    const step4Complete = !!form.useCaseVendor;
-    const contextCategories = form.useCaseCategory ? [form.useCaseCategory] : [];
+    const modeChosen = !!form.useCaseMode;
+    const singleVendorMode = form.useCaseMode === "single-vendor";
+    const multiVendorMode = form.useCaseMode === "multi-vendor";
+
+    const singleStep3Complete = !!form.useCaseCategory;
+    const singleStep4Complete = !!form.useCaseVendor;
+    const singleStep5Complete = !!form.useCaseSingleGoal;
+
+    const multiStep3Complete = !!form.useCaseWorkflowGoal;
+    const multiStep4Complete = form.useCaseWorkflowCategories.length > 0;
 
     return (
       <>
-        {sectionCard("2. What use case are you looking to solve?", (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {GOAL_OPTIONS.map((goal) => (
+        {sectionCard("2. What kind of use case are you checking?", (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {USE_CASE_MODE_OPTIONS.map((option) => (
               <label
-                key={goal}
+                key={option.value}
                 style={{
                   border: "1px solid #ccc",
                   borderRadius: 8,
@@ -540,23 +610,41 @@ export default function CheckerPage() {
                 }}
               >
                 <input
-                  type="checkbox"
-                  checked={form.goals.includes(goal)}
-                  onChange={() => toggleGoal(goal)}
+                  type="radio"
+                  name="useCaseMode"
+                  value={option.value}
+                  checked={form.useCaseMode === option.value}
+                  onChange={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      useCaseMode: option.value,
+                      useCaseCategory: "",
+                      useCaseVendor: "",
+                      useCaseSingleGoal: "",
+                      useCaseWorkflowGoal: "",
+                      useCaseWorkflowCategories: [],
+                      ordering: "",
+                      pos: "",
+                      loyalty: "",
+                      crm: "",
+                      cdp: "",
+                      sms: []
+                    }))
+                  }
                 />
-                {goal}
+                {option.label}
               </label>
             ))}
           </div>
         ))}
 
-        {step2Complete &&
-          sectionCard("3. Choose the category", (
+        {modeChosen && singleVendorMode &&
+          sectionCard("3. Which category is the vendor in?", (
             renderCategorySelect("Category", "useCaseCategory")
           ))}
 
-        {step3Complete &&
-          sectionCard("4. Choose the vendor", (
+        {singleVendorMode && singleStep3Complete &&
+          sectionCard("4. Which vendor are you using?", (
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
                 Vendor
@@ -582,10 +670,97 @@ export default function CheckerPage() {
             </div>
           ))}
 
-        {step4Complete &&
+        {singleVendorMode && singleStep4Complete &&
+          sectionCard("5. What use case or feature are you checking?", (
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                Use Case
+              </label>
+              <select
+                value={form.useCaseSingleGoal}
+                onChange={(e) => updateField("useCaseSingleGoal", e.target.value)}
+                style={{
+                  width: "100%",
+                  maxWidth: 420,
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc"
+                }}
+              >
+                <option value="">Select use case</option>
+                {SINGLE_VENDOR_USE_CASE_OPTIONS.map((goal) => (
+                  <option key={goal} value={goal}>
+                    {goal}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+
+        {singleVendorMode && singleStep5Complete &&
           renderCurrentStackContext(
-            "5. What current stack context matters for this use case?",
-            contextCategories
+            "6. What current stack context matters for this use case?",
+            form.useCaseCategory ? [form.useCaseCategory] : []
+          )}
+
+        {modeChosen && multiVendorMode &&
+          sectionCard("3. What workflow are you trying to support?", (
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                Workflow
+              </label>
+              <select
+                value={form.useCaseWorkflowGoal}
+                onChange={(e) => updateField("useCaseWorkflowGoal", e.target.value)}
+                style={{
+                  width: "100%",
+                  maxWidth: 520,
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc"
+                }}
+              >
+                <option value="">Select workflow</option>
+                {MULTI_VENDOR_USE_CASE_OPTIONS.map((goal) => (
+                  <option key={goal} value={goal}>
+                    {goal}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+
+        {multiVendorMode && multiStep3Complete &&
+          sectionCard("4. Which categories are involved?", (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {CATEGORY_ORDER.map((category) => (
+                <label
+                  key={category}
+                  style={{
+                    border: "1px solid #ccc",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer"
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.useCaseWorkflowCategories.includes(category)}
+                    onChange={() => toggleWorkflowCategory(category)}
+                  />
+                  {category}
+                </label>
+              ))}
+            </div>
+          ))}
+
+        {multiVendorMode && multiStep4Complete &&
+          renderCurrentStackContext(
+            "5. Which vendors are involved in those categories?",
+            form.useCaseWorkflowCategories
           )}
       </>
     );
@@ -612,7 +787,15 @@ export default function CheckerPage() {
     }
 
     if (scenario === "use-case-support") {
-      return form.goals.length > 0 && !!form.useCaseCategory && !!form.useCaseVendor;
+      if (form.useCaseMode === "single-vendor") {
+        return !!form.useCaseCategory && !!form.useCaseVendor && !!form.useCaseSingleGoal;
+      }
+
+      if (form.useCaseMode === "multi-vendor") {
+        return !!form.useCaseWorkflowGoal && form.useCaseWorkflowCategories.length > 0;
+      }
+
+      return false;
     }
 
     return false;
@@ -636,7 +819,9 @@ export default function CheckerPage() {
       </p>
 
       <div style={{ marginBottom: 28, maxWidth: 750, color: "#444" }}>
-        This tool helps restaurant marketing and technology teams evaluate whether their MarTech stack will support specific vendor decisions, integrations, and marketing use cases before committing to implementation.
+        This tool helps restaurant marketing and technology teams evaluate whether
+        their MarTech stack will support specific vendor decisions, integrations,
+        and marketing use cases before committing to implementation.
       </div>
 
       {configError && (
