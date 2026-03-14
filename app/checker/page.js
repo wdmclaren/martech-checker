@@ -644,31 +644,31 @@ export default function CheckerPage() {
           ))}
 
         {singleVendorMode && singleStep3Complete &&
-          sectionCard("4. Which vendor are you using?", (
-            <div style={{ marginBottom: 18 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
-                Vendor
-              </label>
-              <select
-                value={form.useCaseVendor}
-                onChange={(e) => updateField("useCaseVendor", e.target.value)}
-                style={{
-                  width: "100%",
-                  maxWidth: 420,
-                  padding: "10px",
-                  borderRadius: 8,
-                  border: "1px solid #ccc"
-                }}
-              >
-                <option value="">Select vendor</option>
-                {(vendors[form.useCaseCategory] || []).map((v) => (
-                  <option key={v.name} value={v.name}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+  sectionCard("4. Which vendor are you looking at or using?", (
+    <div style={{ marginBottom: 18 }}>
+      <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+        Vendor
+      </label>
+      <select
+        value={form.useCaseVendor}
+        onChange={(e) => updateField("useCaseVendor", e.target.value)}
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          padding: "10px",
+          borderRadius: 8,
+          border: "1px solid #ccc"
+        }}
+      >
+        <option value="">Select vendor</option>
+        {(vendors[form.useCaseCategory] || []).map((v) => (
+          <option key={v.name} value={v.name}>
+            {v.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  ))}
 
         {singleVendorMode && singleStep4Complete &&
           sectionCard("5. What use case or feature are you checking?", (
@@ -696,12 +696,6 @@ export default function CheckerPage() {
               </select>
             </div>
           ))}
-
-        {singleVendorMode && singleStep5Complete &&
-          renderCurrentStackContext(
-            "6. What current stack context matters for this use case?",
-            form.useCaseCategory ? [form.useCaseCategory] : []
-          )}
 
         {modeChosen && multiVendorMode &&
           sectionCard("3. What workflow are you trying to support?", (
