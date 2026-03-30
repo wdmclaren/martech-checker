@@ -57,6 +57,10 @@ function safeJsonParse(value) {
 
 function normalizeInput(body) {
   return {
+    scenario: body.scenario || "",
+    useCaseMode: body.useCaseMode || "",
+    candidateCategory: body.candidateCategory || "",
+    candidateVendor: body.candidateVendor || "",
     ordering: body.ordering || "",
     pos: body.pos || "",
     loyalty: body.loyalty || "",
@@ -121,6 +125,83 @@ export async function OPTIONS(req) {
     status: 204,
     headers: corsHeaders(allowOrigin)
   });
+}
+
+function buildSummary(input, score, topRisks) {
+  const goalsText = input.goals.length
+    ? input.goals.join(", ")
+    : "the selected use case";
+
+  const candidateText =
+    input.candidateVendor && input.candidateCategory
+      ? ` The scenario focuses on ${input.candidateVendor} in ${input.candidateCategory}.`
+      : "";
+
+  if (score >= 80) {
+    return `This scenario appears to be a strong fit for ${goalsText}.${candidateText} The main focus should be validating implementation details, ownership, and any reporting dependencies.`;
+  }
+
+  if (score >= 55) {
+    return `This scenario looks workable for ${goalsText}, but there are important considerations that should be clarified before moving forward.${candidateText}`;
+  }
+
+  return `This scenario shows meaningful compatibility or implementation risk for ${goalsText}.${candidateText} You should validate architecture, ownership, and vendor limitations before making a decision.`;
+}
+
+function buildRecommendedNextSteps(topRisks, input) {
+  const steps = [];
+
+  if (input.scenario === "add-vendor") {
+    steps.push("Validate how the new vendor will fit into your existing stack before implementation.");
+  }
+
+  if (input.scenario === "compare-vendors") {
+    steps.push("Compare vendor capabilities against your highest-priority use cases, not just feature lists.");
+  }
+
+  if (input.scenario === "evaluate-stack") {
+    steps.push("Document which systems own core responsibilities across your current stack.");
+  }
+
+  if (input.scenario === "use-case-support") {
+    steps.push("Confirm whether this use case is handled natively, through integration, or with custom work.");
+  }
+
+  if (topRisks.some((r) => r.category === "Identity")) {
+    steps.push("Clarify the source of truth for guest identity, segmentation, and consent.");
+  }
+
+  if (topRisks.some((r) => r.category === "Data")) {
+    steps.push("Define the data and measurement approach needed to support this use case.");
+  }
+
+  if (topRisks.some((r) => r.category === "Integration")) {
+    steps.push("Confirm whether the required vendor connections are native, middleware-based, or custom.");
+  }
+
+  if (topRisks.some((r) => r.category === "Offers")) {
+    steps.push("Map where offer creation, validation, redemption, and reporting will occur.");
+  }
+
+  if (steps.length === 0) {
+    steps.push("Validate the use case with each vendor before committing to implementation.");
+  }
+
+  return [...new Set(steps)].slice(0, 5);
+}
+
+function buildVendorQuestions(topRisks) {
+  const questions = [];
+
+  topRisks.forEach((risk) => {
+    (risk.questions || []).forEach((q) => {
+      if (!questions.includes(q)) {
+        questions.push(q);
+      }
+    });
+  });
+
+  return questions.slice(0, 6);
 }
 
 export async function POST(req) {
@@ -225,22 +306,28 @@ console.log(JSON.stringify(rulesRes.records.slice(0, 3).map(r => r.fields), null
     });
 
     const topRisks = hits.slice(0, 5);
+    const summary = buildSummary(input, score, topRisks);
+    const recommendedNextSteps = buildRecommendedNextSteps(topRisks, input);
+    const vendorQuestions = buildVendorQuestions(topRisks);
 
     return new Response(
-      JSON.stringify({
-        score,
-        status: score >= 80 ? "green" : score >= 55 ? "yellow" : "red",
-        topRisks,
-        allFindings: hits
-      }),
-      {
-        status: 200,
-        headers: {
-          ...corsHeaders(allowOrigin),
-          "Content-Type": "application/json"
-        }
-      }
-    );
+  JSON.stringify({
+    score,
+    status: score >= 80 ? "green" : score >= 55 ? "yellow" : "red",
+    summary,
+    recommendedNextSteps,
+    vendorQuestions,
+    topRisks,
+    allFindings: hits
+  }),
+  {
+    status: 200,
+    headers: {
+      ...corsHeaders(allowOrigin),
+      "Content-Type": "application/json"
+    }
+  }
+);
   } catch (error) {
     return new Response(
       JSON.stringify({

@@ -235,9 +235,13 @@ export default function CheckerPage() {
         sms: form.sms,
         goals:
           scenario === "use-case-support" && form.useCaseMode === "single-vendor"
-            ? form.useCaseSingleGoal ? [form.useCaseSingleGoal] : []
+            ? form.useCaseSingleGoal
+              ? [form.useCaseSingleGoal]
+              : []
             : scenario === "use-case-support" && form.useCaseMode === "multi-vendor"
-              ? form.useCaseWorkflowGoal ? [form.useCaseWorkflowGoal] : []
+              ? form.useCaseWorkflowGoal
+                ? [form.useCaseWorkflowGoal]
+                : []
               : form.goals
       };
 
@@ -644,34 +648,34 @@ export default function CheckerPage() {
           ))}
 
         {singleVendorMode && singleStep3Complete &&
-  sectionCard("4. Which vendor are you looking at or using?", (
-    <div style={{ marginBottom: 18 }}>
-      <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
-        Vendor
-      </label>
-      <select
-        value={form.useCaseVendor}
-        onChange={(e) => updateField("useCaseVendor", e.target.value)}
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          padding: "10px",
-          borderRadius: 8,
-          border: "1px solid #ccc"
-        }}
-      >
-        <option value="">Select vendor</option>
-        {(vendors[form.useCaseCategory] || []).map((v) => (
-          <option key={v.name} value={v.name}>
-            {v.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  ))}
+          sectionCard("4. Which vendor are you looking at or using?", (
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                Vendor
+              </label>
+              <select
+                value={form.useCaseVendor}
+                onChange={(e) => updateField("useCaseVendor", e.target.value)}
+                style={{
+                  width: "100%",
+                  maxWidth: 420,
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc"
+                }}
+              >
+                <option value="">Select vendor</option>
+                {(vendors[form.useCaseCategory] || []).map((v) => (
+                  <option key={v.name} value={v.name}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
 
         {singleVendorMode && singleStep4Complete &&
-          sectionCard("5. What use case or feature are you checking?", (
+          sectionCard("5. Which use case are you looking at?", (
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
                 Use Case
@@ -916,6 +920,23 @@ export default function CheckerPage() {
             </div>
           </div>
 
+          {result.summary && (
+            <div
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 12,
+                padding: 24,
+                marginBottom: 24,
+                background: "#fafafa"
+              }}
+            >
+              <h2 style={{ marginTop: 0 }}>What this means</h2>
+              <div style={{ color: "#444", lineHeight: 1.6 }}>
+                {result.summary}
+              </div>
+            </div>
+          )}
+
           <div
             style={{
               border: "1px solid #ddd",
@@ -978,6 +999,42 @@ export default function CheckerPage() {
               ))
             )}
           </div>
+
+          {result.vendorQuestions?.length > 0 && (
+            <div
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 12,
+                padding: 24,
+                marginTop: 24
+              }}
+            >
+              <h2 style={{ marginTop: 0 }}>Questions to Ask Vendors</h2>
+              <ul style={{ marginTop: 0, lineHeight: 1.7 }}>
+                {result.vendorQuestions.map((q, idx) => (
+                  <li key={idx}>{q}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result.recommendedNextSteps?.length > 0 && (
+            <div
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 12,
+                padding: 24,
+                marginTop: 24
+              }}
+            >
+              <h2 style={{ marginTop: 0 }}>3Owl Recommended Next Steps</h2>
+              <ul style={{ marginTop: 0, lineHeight: 1.7 }}>
+                {result.recommendedNextSteps.map((step, idx) => (
+                  <li key={idx}>{step}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
